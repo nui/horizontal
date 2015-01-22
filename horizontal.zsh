@@ -103,11 +103,18 @@ _prompt_horizontal_userhost() {
 
 prompt_horizontal_preexec() {
   cmd_timestamp=$EPOCHSECONDS
+
+  # shows the executed command in the title when a process is active
+  print -Pn "\e]0;"
+  echo -nE "$2"
+  print -Pn "\a"
 }
 
 
 prompt_horizontal_precmd() {
   _prompt_horizontal_set_prompt
+  # shows the hostname
+  print -Pn '\e]0;%M\a'
 
   local preprompt
   local r_preprompt
