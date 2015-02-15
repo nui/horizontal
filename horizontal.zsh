@@ -4,21 +4,20 @@
 
 
 _prompt_horizontal_remove_invisible_character() {
-  local zero_length='%([BSUbfksu]|([FB]|){*})'
-  print ${(S%%)1//$~zero_length/}
+  readonly zero_length='%([BSUbfksu]|([FB]|){*})'
+  print -n ${(S%%)1//$~zero_length/}
 }
 
 
 _prompt_horizontal_preprompt_length() {
-  local tmp="$(_prompt_horizontal_remove_invisible_character $@)"
-  echo ${#tmp}
+  print -n "${#$(_prompt_horizontal_remove_invisible_character $@)}"
 }
 
 
 _prompt_horizontal_set_prompt() {
   # face color
-  local happy='green'
-  local sad='yellow'
+  readonly happy='green'
+  readonly sad='yellow'
 
   if ((${horizontal_no_color:-0})); then
     PROMPT=" '-->%(1j. %j!.) %(?.:%).:() "
@@ -42,11 +41,10 @@ _prompt_horizontal_set_prompt() {
 
 
 _prompt_horizontal_generate_fill_string() {
-  local fillchar=${horizontal_fill_character:=-}
   local prompt_length="$(_prompt_horizontal_preprompt_length ${(j::)@})"
   local n=$((COLUMNS - prompt_length))
   ((n < 0)) && n=$((COLUMNS * 2 - prompt_length))
-  ((n > 0)) && printf "$fillchar%.0s" {1..$n}
+  ((n > 0)) && printf "${horizontal_fill_character:--}%.0s" {1..$n}
 }
 
 
@@ -55,22 +53,22 @@ _prompt_horizontal_join_status_array() {
   local string
   for item in ${(P)2}; do string+=$separator$item; done
   string=${string:${#separator}} # remove leading separator
-  echo $string
+  print -n $string
 }
 
 
 _prompt_horizontal_human_time() {
   # turns seconds into human readable time
-  # 165392 => 1d 21h 56m 32s
+  # e.g., 165392 => 1d 21h 56m 32s
   local tmp=$1
   local days=$((tmp / 60 / 60 / 24))
   local hours=$((tmp / 60 / 60 % 24))
   local minutes=$((tmp / 60 % 60))
   local seconds=$((tmp % 60))
-  (($days > 0)) && echo -n "${days}d "
-  (($hours > 0)) && echo -n "${hours}h "
-  (($minutes > 0)) && echo -n "${minutes}m "
-  echo ${seconds}s
+  (($days > 0)) && print -n "${days}d "
+  (($hours > 0)) && print -n "${hours}h "
+  (($minutes > 0)) && print -n "${minutes}m "
+  print -n ${seconds}s
 }
 
 
@@ -84,30 +82,31 @@ _prompt_horizontal_cmd_exec_time() {
 
 
 _prompt_horizontal_git_dirty() {
+  local umode
   # check if we're in a git repo
   command git rev-parse --is-inside-work-tree &>/dev/null || return
   # check if it's dirty
-  ((${horizontal_git_untracked_dirty:-1})) && local umode="-unormal" || local umode="-uno"
+  ((${horizontal_git_untracked_dirty:-1})) && umode="-unormal" || umode="-uno"
   [[ -n $(command git status --porcelain --ignore-submodules ${umode}) ]]
 
-  (($? == 0)) && echo '*'
+  (($? == 0)) && print -n '*'
 }
 
 
 _prompt_horizontal_userhost() {
   if [[ ${horizontal_show_userhost:-1} == 1 ]]; then
-    echo "%b%f%n|%B%m%b%f: "
+    print -n "%b%f%n|%B%m%b%f: "
   fi
 }
 
 
 prompt_horizontal_preexec() {
-  cmd_timestamp=$EPOCHSECONDS
+  typeset -g cmd_timestamp=$EPOCHSECONDS
 
   # shows the executed command in the title when a process is active
-  print -Pn "\e]0;"
-  echo -nE "$2"
-  print -Pn "\a"
+  print -n -P "\e]0;"
+  print -n -R "$2"
+  print -n -P "\a"
 }
 
 
