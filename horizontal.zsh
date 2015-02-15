@@ -21,7 +21,7 @@ _prompt_horizontal_set_prompt() {
   local sad='yellow'
 
   if ((${horizontal_no_color:-0})); then
-    PROMPT=" '-- %(?.:%).:() "
+    PROMPT=" '-->%(1j. %j!.) %(?.:%).:() "
     # backup prompt highlighting
     if [[ ${#_horizontal_orig_zsh_highlight_highlighters} -eq 0 ]]; then
       _horizontal_orig_zsh_highlight_highlighters=($ZSH_HIGHLIGHT_HIGHLIGHTERS)
@@ -31,7 +31,7 @@ _prompt_horizontal_set_prompt() {
   else
     # prompt face turn green if the previous command did exit with 0,
     # otherwise turn yellow
-    PROMPT="%F{cyan} '--%f%B> %(?.%F{$happy}:%).%F{$sad}:()%b%f "
+    PROMPT="%F{cyan} '--%f%B>%(1j. %F{red}%j!%f.) %(?.%F{$happy}:%).%F{$sad}:()%b%f "
     # restore prompt highlighting if needed
     if [[ ${#ZSH_HIGHLIGHT_HIGHLIGHTERS} -eq 0 ]]; then
       ZSH_HIGHLIGHT_HIGHLIGHTERS=($_horizontal_orig_zsh_highlight_highlighters)
