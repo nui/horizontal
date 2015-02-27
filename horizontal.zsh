@@ -5,12 +5,12 @@
 
 _prompt_horizontal_remove_invisible_character() {
   readonly zero_length='%([BSUbfksu]|([FB]|){*})'
-  print -n ${(S%%)1//$~zero_length/}
+  print -n -- ${(S%%)1//$~zero_length/}
 }
 
 
 _prompt_horizontal_preprompt_length() {
-  print -n "${#$(_prompt_horizontal_remove_invisible_character $@)}"
+  print -n -- "${#$(_prompt_horizontal_remove_invisible_character "$@")}"
 }
 
 
@@ -22,7 +22,7 @@ _prompt_horizontal_set_prompt() {
   if ((${horizontal_no_color:-0})); then
     PROMPT=" '-->%(1j. %j!.) %(?.:%).:() "
     # backup prompt highlighting
-    if [[ ${#_horizontal_orig_zsh_highlight_highlighters} -eq 0 ]]; then
+    if ((${+_horizontal_orig_zsh_highlight_highlighters} == 0)); then
       _horizontal_orig_zsh_highlight_highlighters=($ZSH_HIGHLIGHT_HIGHLIGHTERS)
     fi
     # and disable it
@@ -32,7 +32,7 @@ _prompt_horizontal_set_prompt() {
     # otherwise turn yellow
     PROMPT="%F{cyan} '--%f%B>%(1j. %F{red}%j!%f.) %(?.%F{$happy}:%).%F{$sad}:()%b%f "
     # restore prompt highlighting if needed
-    if [[ ${#ZSH_HIGHLIGHT_HIGHLIGHTERS} -eq 0 ]]; then
+    if ((${#ZSH_HIGHLIGHT_HIGHLIGHTERS} == 0)); then
       ZSH_HIGHLIGHT_HIGHLIGHTERS=($_horizontal_orig_zsh_highlight_highlighters)
     fi
     unset _horizontal_orig_zsh_highlight_highlighters
@@ -41,41 +41,41 @@ _prompt_horizontal_set_prompt() {
 
 
 _prompt_horizontal_generate_fill_string() {
-  local prompt_length="$(_prompt_horizontal_preprompt_length ${(j::)@})"
-  local n=$((COLUMNS - prompt_length))
+  integer prompt_length=$(_prompt_horizontal_preprompt_length ${(j::)@})
+  integer n=$((COLUMNS - prompt_length))
   ((n < 0)) && n=$((COLUMNS * 2 - prompt_length))
-  ((n > 0)) && printf "${horizontal_fill_character:--}%.0s" {1..$n}
+  ((n > 0)) && printf -- "${horizontal_fill_character:--}%.0s" {1..$n}
 }
 
 
 _prompt_horizontal_join_status_array() {
   local separator=$1
   local string
-  for item in ${(P)2}; do string+=$separator$item; done
+  for item in ${@[2,-1]}; do string+=$separator$item; done
   string=${string:${#separator}} # remove leading separator
-  print -n $string
+  print -n -- $string
 }
 
 
 _prompt_horizontal_human_time() {
   # turns seconds into human readable time
   # e.g., 165392 => 1d 21h 56m 32s
-  local tmp=$1
-  local days=$((tmp / 60 / 60 / 24))
-  local hours=$((tmp / 60 / 60 % 24))
-  local minutes=$((tmp / 60 % 60))
-  local seconds=$((tmp % 60))
-  (($days > 0)) && print -n "${days}d "
-  (($hours > 0)) && print -n "${hours}h "
-  (($minutes > 0)) && print -n "${minutes}m "
-  print -n ${seconds}s
+  integer tmp=$1
+  integer days=$((tmp / 60 / 60 / 24))
+  integer hours=$((tmp / 60 / 60 % 24))
+  integer minutes=$((tmp / 60 % 60))
+  integer seconds=$((tmp % 60))
+  (($days > 0)) && print -n -- "${days}d "
+  (($hours > 0)) && print -n -- "${hours}h "
+  (($minutes > 0)) && print -n -- "${minutes}m "
+  print -n -- ${seconds}s
 }
 
 
 _prompt_horizontal_cmd_exec_time() {
   # displays the exec time of the last command if set threshold was exceeded
   local stop=$EPOCHSECONDS
-  local start=${cmd_timestamp:-$stop}
+  local start=${_horizontal_cmd_timestamp:-$stop}
   integer elapsed=$stop-$start
   (($elapsed > ${horizontal_cmd_max_exec_time:=5})) && _prompt_horizontal_human_time $elapsed
 }
@@ -86,34 +86,34 @@ _prompt_horizontal_git_dirty() {
   # check if we're in a git repo
   command git rev-parse --is-inside-work-tree &>/dev/null || return
   # check if it's dirty
-  ((${horizontal_git_untracked_dirty:-1})) && umode="-unormal" || umode="-uno"
+  ((${horizontal_git_untracked_dirty:-1})) && umode='-unormal' || umode='-uno'
   [[ -n $(command git status --porcelain --ignore-submodules ${umode}) ]]
 
-  (($? == 0)) && print -n '*'
+  (($? == 0)) && print -n -- '*'
 }
 
 
 _prompt_horizontal_userhost() {
   if [[ ${horizontal_show_userhost:-1} == 1 ]]; then
-    print -n "%b%f%n|%B%m%b%f: "
+    print -n -- '%b%f%n|%B%m%b%f: '
   fi
 }
 
 
 prompt_horizontal_preexec() {
-  typeset -g cmd_timestamp=$EPOCHSECONDS
+  typeset -g _horizontal_cmd_timestamp=$EPOCHSECONDS
 
   # shows the executed command in the title when a process is active
-  print -n -P "\e]0;"
-  print -n -R "$2"
-  print -n -P "\a"
+  print -n -P -- "\e]0;"
+  print -n -r -- "$2"
+  print -n -P -- "\a"
 }
 
 
 prompt_horizontal_precmd() {
   _prompt_horizontal_set_prompt
   # shows the hostname
-  print -Pn '\e]0;%M\a'
+  print -Pn -- '\e]0;%M\a'
 
   local preprompt
   local r_preprompt
@@ -127,17 +127,19 @@ prompt_horizontal_precmd() {
 
     local exec_time
     local py_env
+    local git_info
 
     ((${horizontal_show_git:-1})) && vcs_info
 
     # git branch and dirty status
     ((${horizontal_show_git:-1})) && {
-      prompt_status+="$vcs_info_msg_0_$(_prompt_horizontal_git_dirty)"
+      git_info="$vcs_info_msg_0_$(_prompt_horizontal_git_dirty)"
+      [[ -n $git_info ]] && prompt_status+=$git_info
     }
 
     # python virtual environment
     ((${horizontal_show_pythonenv:-1})) && [[ -n $VIRTUAL_ENV ]] && {
-      py_env=$(command basename $VIRTUAL_ENV)
+      py_env=${VIRTUAL_ENV:t}
       prompt_status+="($py_env%)"
     }
 
@@ -147,12 +149,10 @@ prompt_horizontal_precmd() {
       [[ -n $exec_time ]] && prompt_status+="%F{yellow}${exec_time}%f"
     }
 
-    # remove empty element
-    prompt_status=($prompt_status)
-
     # put status to preprompt line
-    ((${#prompt_status} > 0)) &&
-      preprompt+=" $(_prompt_horizontal_join_status_array $separator prompt_status) "
+    ((${#prompt_status} > 0)) && {
+      preprompt+=' '$(_prompt_horizontal_join_status_array $separator $prompt_status)' '
+    }
   }
 
   # fill preprompt line space
@@ -167,10 +167,10 @@ prompt_horizontal_precmd() {
   }
 
   # print preprompt line
-  print -P $preprompt
+  print -P -- $preprompt
 
   # reset value since `preexec` isn't always triggered
-  unset cmd_timestamp
+  unset _horizontal_cmd_timestamp
 }
 
 
@@ -218,7 +218,7 @@ prompt_horizontal_setup() {
   VIRTUAL_ENV_DISABLE_PROMPT=1
 }
 
-prompt_horizontal_setup $@
+prompt_horizontal_setup "$@"
 
 # vim: ft=zsh sw=2 sts=2 ts=2
 
