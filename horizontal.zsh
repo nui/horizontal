@@ -126,7 +126,6 @@ prompt_horizontal_precmd() {
     local separator=${horizontal_status_separator:-"%F{cyan} | %f"}
 
     local exec_time
-    local py_env
     local git_info
 
     ((${horizontal_show_git:-1})) && vcs_info
@@ -137,10 +136,14 @@ prompt_horizontal_precmd() {
       [[ -n $git_info ]] && prompt_status+=$git_info
     }
 
+    # pyenv python version
+    ((${horizontal_show_pyenv_python_version:-1})) && [[ -n $PYENV_VERSION ]] && {
+      prompt_status+="PyEnv $PYENV_VERSION"
+    }
+
     # python virtual environment
     ((${horizontal_show_pythonenv:-1})) && [[ -n $VIRTUAL_ENV ]] && {
-      py_env=${VIRTUAL_ENV:t}
-      prompt_status+="($py_env%)"
+      prompt_status+="(${VIRTUAL_ENV:t}%)"
     }
 
     # last command execute time
@@ -186,6 +189,7 @@ prompt_horizontal_setup() {
     # horizontal_no_color=0
     # horizontal_show_exec_time=1
     # horizontal_show_git=1
+    # horizontal_show_pyenv_python_version=1
     # horizontal_show_pythonenv=1
     # horizontal_show_status=1
     # horizontal_show_userhost=1
