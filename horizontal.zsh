@@ -95,7 +95,7 @@ _prompt_horizontal_git_dirty() {
 
 _prompt_horizontal_userhost() {
   if [[ ${horizontal_show_userhost:-1} == 1 ]]; then
-    print -n -- '%b%f%n|%B%m%b%f: '
+    print -n -- "%b%f%n|%B${horizontal_hostname:-%m}%b%f: "
   fi
 }
 
@@ -186,6 +186,7 @@ prompt_horizontal_setup() {
     # horizontal_fill_space=1
     # horizontal_git_branch_symbol=''
     # horizontal_git_untracked_dirty=1
+    # horizontal_hostname=
     # horizontal_no_color=0
     # horizontal_show_exec_time=1
     # horizontal_show_git=1
