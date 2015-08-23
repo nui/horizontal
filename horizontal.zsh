@@ -72,11 +72,16 @@ _prompt_horizontal_human_time() {
 }
 
 
-_prompt_horizontal_cmd_exec_time() {
-  # displays the exec time of the last command if set threshold was exceeded
+_prompt_horizontal_seconds_since_start() {
   local stop=$EPOCHSECONDS
   local start=${_horizontal_cmd_timestamp:-$stop}
-  integer elapsed=$stop-$start
+  print -- $((stop-start))
+}
+
+
+_prompt_horizontal_human_cmd_exec_time() {
+  # displays the exec time of the last command if set threshold was exceeded
+  integer elapsed=$(_prompt_horizontal_seconds_since_start)
   (($elapsed > ${horizontal_cmd_max_exec_time:=5})) && _prompt_horizontal_human_time $elapsed
 }
 
@@ -95,7 +100,7 @@ _prompt_horizontal_git_dirty() {
 
 _prompt_horizontal_userhost() {
   if [[ ${horizontal_show_userhost:-1} == 1 ]]; then
-    print -n -- "%b%f%n|%B${horizontal_hostname:-%m}%b%f: "
+    print -n -- "%b%f%n|${horizontal_hostname:-%m}%f: "
   fi
 }
 
@@ -116,16 +121,17 @@ prompt_horizontal_precmd() {
   print -Pn -- '\e]0;%M\a'
 
   local preprompt
-  local r_preprompt
+  local rpreprompt
 
   preprompt="%b%F{cyan}.-%B($(_prompt_horizontal_userhost)%B%F{yellow}%~%F{cyan}\)%b%F{cyan}-%f"
 
   ((${horizontal_show_status:-1})) && {
 
     local -a prompt_status
+    local -a rprompt_status
     local separator=${horizontal_status_separator:-"%F{cyan} | %f"}
 
-    local exec_time
+    local human_exec_time
     local git_info
 
     ((${horizontal_show_git:-1})) && vcs_info
@@ -148,19 +154,27 @@ prompt_horizontal_precmd() {
 
     # last command execute time
     ((${horizontal_show_exec_time:-1})) && {
-      exec_time=$(_prompt_horizontal_cmd_exec_time)
-      [[ -n $exec_time ]] && prompt_status+="%F{yellow}${exec_time}%f"
+      human_exec_time=$(_prompt_horizontal_human_cmd_exec_time)
+      [[ -n $human_exec_time ]] && prompt_status+="%F{yellow}${human_exec_time}%f"
     }
+
+    ((${horizontal_show_timestamp:-1})) \
+      && (($(_prompt_horizontal_seconds_since_start) - ${horizontal_timestamp_threshold_seconds:-180} >= 0)) \
+      && rprompt_status+="$(date +%D\ %R)"
 
     # put status to preprompt line
     ((${#prompt_status} > 0)) && {
       preprompt+=' '$(_prompt_horizontal_join_status_array $separator $prompt_status)' '
     }
+    # put rstatus to right of preprompt line
+    ((${#rprompt_status} > 0)) && {
+      rpreprompt+=' '$(_prompt_horizontal_join_status_array $separator $rprompt_status)' %F{cyan}-%f'
+    }
   }
 
   # fill preprompt line space
   ((${horizontal_fill_space:-1})) &&
-    preprompt+="%F{cyan}$(_prompt_horizontal_generate_fill_string $preprompt $r_preprompt)%f$r_preprompt"
+    preprompt+="%F{cyan}$(_prompt_horizontal_generate_fill_string $preprompt $rpreprompt)%f$rpreprompt"
 
   # add a blank line before preprompt line
   ((${horizontal_cozy:-0})) && preprompt="\n$preprompt"
@@ -193,8 +207,10 @@ prompt_horizontal_setup() {
     # horizontal_show_pyenv_python_version=1
     # horizontal_show_pythonenv=1
     # horizontal_show_status=1
+    # horizontal_show_timestamp=1
     # horizontal_show_userhost=1
     # horizontal_status_separator="%F{cyan} | %f"
+    # horizontal_timestamp_threshold_seconds=180
 
   # prevent percentage showing up
   # if output doesn't end with a newline
