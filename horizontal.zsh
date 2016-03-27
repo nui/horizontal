@@ -1,16 +1,17 @@
-# Horizontal
-# by Nui Narongwet
+# Horizontal by Nui Narongwet
 # MIT License
 
 # Naming convension
-# internal function
-#    - prefix function's name with _horizontal
-#    - store output in a global variable named after function's name + _out
+# functions
+#    - snake case
+#    - use _horizontal_FUNCNAME style
+#    - store result in _horizontal_FUNCNAME_result variable
 
 
+# Set a plaintext of $1 without formatting
 _horizontal_plaintext() {
     readonly zero_length='%([BSUbfksu]|([FB]|){*})'
-    typeset -g _horizontal_plaintext_out=${(S%%)1//$~zero_length/}
+    typeset -g _horizontal_plaintext_result=${(S%%)1//$~zero_length/}
 }
 
 _horizontal_reset_prompt() {
@@ -38,16 +39,20 @@ _horizontal_reset_prompt() {
     fi
 }
 
+# Set a string that when combine with $1
+# its length is equal to
+#   - $COLUMNS if length of $1 <= $COLUMNS
+#   - $COLUMNS * 2 if length of $1 > $COLUMNS
 _horizontal_gen_padding() {
     _horizontal_plaintext "${(j::)@}"
-    integer prompt_length=$#_horizontal_plaintext_out
+    integer prompt_length=$#_horizontal_plaintext_result
     integer n=$((COLUMNS - prompt_length))
     ((n < 0)) && n=$((COLUMNS * 2 - prompt_length))
     local IFS=${horizontal_fill_character:--}
     if ((n > 0)); then
-        typeset -g _horizontal_gen_padding_out=${(l:$n:::)}
+        typeset -g _horizontal_gen_padding_result=${(l:$n:::)}
     else
-        typeset -g _horizontal_gen_padding_out=
+        typeset -g _horizontal_gen_padding_result=
     fi
 }
 
@@ -56,9 +61,12 @@ _horizontal_join_status() {
     local string
     for item in ${@[1,-1]}; do string+=$separator$item; done
     string=${string:${#separator}} # remove leading separator
-    typeset -g _horizontal_join_status_out=$string
+    typeset -g _horizontal_join_status_result=$string
 }
 
+# Turn number of seconds into human readable format
+#   78555 => 21h 49m 15s
+#    2781 => 46m 21s
 _horizontal_human_time() {
     local human=""
     local total_seconds=$1
@@ -70,13 +78,13 @@ _horizontal_human_time() {
     (( hours > 0 )) && human+="${hours}h "
     (( minutes > 0 )) && human+="${minutes}m "
     human+="${seconds}s"
-    typeset -g _horizontal_human_time_out=$human
+    typeset -g _horizontal_human_time_result=$human
 }
 
 _horizontal_exec_seconds() {
     local stop=$EPOCHSECONDS
     local start=${_horizontal_cmd_timestamp:-$stop}
-    typeset -g _horizontal_exec_seconds_out=$((stop-start))
+    typeset -g _horizontal_exec_seconds_result=$((stop-start))
 }
 
 _horizontal_git_dirty() {
@@ -86,17 +94,17 @@ _horizontal_git_dirty() {
     [[ -n $(command git status --porcelain --ignore-submodules ${umode}) ]]
 
     if (($? == 0)); then
-        typeset -g _horizontal_git_dirty_out='*'
+        typeset -g _horizontal_git_dirty_result='*'
     else
-        typeset -g _horizontal_git_dirty_out=
+        typeset -g _horizontal_git_dirty_result=
     fi
 }
 
 _horizontal_userhost() {
     if [[ ${horizontal_show_userhost:-1} == 1 ]]; then
-        typeset -g _horizontal_userhost_out="%b%f%n|${horizontal_hostname:-%m}%f: "
+        typeset -g _horizontal_userhost_result="%b%f%n|${horizontal_hostname:-%m}%f: "
     else
-        typeset -g _horizontal_userhost_out=
+        typeset -g _horizontal_userhost_result=
     fi
 }
 
@@ -117,7 +125,7 @@ prompt_horizontal_precmd() {
     local rpreprompt
 
     _horizontal_userhost
-    preprompt="%b%F{cyan}.-%B(${_horizontal_userhost_out}%B%F{yellow}%~%F{cyan})%b%F{cyan}-%f"
+    preprompt="%b%F{cyan}.-%B(${_horizontal_userhost_result}%B%F{yellow}%~%F{cyan})%b%F{cyan}-%f"
 
     ((${horizontal_show_status:-1})) && {
 
@@ -132,7 +140,7 @@ prompt_horizontal_precmd() {
         # git branch and dirty status
         ((${horizontal_show_git:-1})) && [[ -n $vcs_info_msg_0_ ]] && {
             _horizontal_git_dirty
-            git_info="${vcs_info_msg_0_}${_horizontal_git_dirty_out}"
+            git_info="${vcs_info_msg_0_}${_horizontal_git_dirty_result}"
             [[ -n $git_info ]] && prompt_status+=$git_info
         }
 
@@ -149,15 +157,15 @@ prompt_horizontal_precmd() {
         # last command execute time
         ((${horizontal_show_exec_time:-1})) && {
             _horizontal_exec_seconds
-            (( $_horizontal_exec_seconds_out > ${horizontal_cmd_max_exec_time:-5} )) && {
-                _horizontal_human_time $_horizontal_exec_seconds_out
-                prompt_status+="%F{yellow}$_horizontal_human_time_out%f"
+            (( $_horizontal_exec_seconds_result > ${horizontal_cmd_max_exec_time:-5} )) && {
+                _horizontal_human_time $_horizontal_exec_seconds_result
+                prompt_status+="%F{yellow}$_horizontal_human_time_result%f"
             }
         }
 
         ((${horizontal_show_timestamp:-1})) && {
             _horizontal_exec_seconds
-            (($_horizontal_exec_seconds_out - ${horizontal_timestamp_threshold_seconds:-180} >= 0)) && {
+            (($_horizontal_exec_seconds_result - ${horizontal_timestamp_threshold_seconds:-180} >= 0)) && {
                 strftime -s timestamp '%D %R' $EPOCHSECONDS
                 rprompt_status+=$timestamp
             }
@@ -166,20 +174,20 @@ prompt_horizontal_precmd() {
         # put status to preprompt line
         ((${#prompt_status} > 0)) && {
             _horizontal_join_status $prompt_status
-            preprompt+=" $_horizontal_join_status_out "
+            preprompt+=" $_horizontal_join_status_result "
         }
 
         # put rstatus to right of preprompt line
         ((${#rprompt_status} > 0)) && {
             _horizontal_join_status $rprompt_status
-            rpreprompt+=" $_horizontal_join_status_out %F{cyan}-%f"
+            rpreprompt+=" $_horizontal_join_status_result %F{cyan}-%f"
         }
     }
 
     # make a horizontal line
     ((${horizontal_fill_space:-1})) && {
         _horizontal_gen_padding $preprompt $rpreprompt
-        preprompt+="%F{cyan}${_horizontal_gen_padding_out}%f$rpreprompt"
+        preprompt+="%F{cyan}${_horizontal_gen_padding_result}%f$rpreprompt"
     }
 
     # blank line before preprompt line
@@ -187,7 +195,7 @@ prompt_horizontal_precmd() {
 
     ((${horizontal_no_color:-0})) && {
         _horizontal_plaintext $preprompt
-        preprompt=$_horizontal_plaintext_out
+        preprompt=$_horizontal_plaintext_result
     }
 
     # print preprompt line
@@ -247,4 +255,3 @@ prompt_horizontal_setup() {
 
 prompt_horizontal_setup "$@"
 # vim: ft=zsh sw=4 sts=4 ts=4
-
