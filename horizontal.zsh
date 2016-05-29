@@ -139,7 +139,7 @@ prompt_horizontal_precmd() {
 
         # git branch and dirty status
         ((${horizontal_show_git:-1})) && [[ -n $vcs_info_msg_0_ ]] && {
-            _horizontal_git_dirty
+            ((${horizontal_git_check_dirty:-1})) && _horizontal_git_dirty
             git_info="${vcs_info_msg_0_}${_horizontal_git_dirty_result}"
             [[ -n $git_info ]] && prompt_status+=$git_info
         }
@@ -213,6 +213,7 @@ prompt_horizontal_setup() {
         # horizontal_fill_character=-
         # horizontal_fill_space=1
         # horizontal_git_branch_symbol=''
+        # horizontal_git_check_dirty=1
         # horizontal_git_untracked_dirty=1
         # horizontal_hostname=
         # horizontal_no_color=0
