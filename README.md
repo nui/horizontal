@@ -45,28 +45,35 @@ Symlink (or copy) `horizontal.zsh` to `~/.zprezto/modules/prompt/functions/promp
     ```
 
 
-## Options
+## Feature switchs
+
+1 = enable
+0 = disable
+
+### `horizontal[cozy]=1`
+Toggle a blank line before next prompt.
+
+###  `horizontal[color]=1`
+Toggle Black-and-white prompt
+
+###  `horizontal[status]=1`
+If set to zero, hide git, python virtual env and command execution time.
+
+###  `horizontal[git]=1`
+Display or hide git status
+
+###  `horizontal[virtualenv]=1`
+Display or hide python virtual environment name
+
+###  `horizontal[userhost]=1`
+Display or hide `user|host` in prompt
+
+## Settings
+
+Override default value of configurable settings
 
 ### `horizontal_cmd_max_exec_time=5`
 The max execution time of a process before its run time is shown when it exits.
-
-### `horizontal_cozy=0`
-Toggle a blank line before next prompt.
-
-###  `horizontal_no_color=0`
-Toggle Black-and-white prompt
-
-###  `horizontal_show_status=1`
-If set to zero, hide git, python virtual env and command execution time.
-
-###  `horizontal_show_git=1`
-Display or hide git status
-
-###  `horizontal_show_pythonenv=1`
-Display or hide python virtual environment name
-
-###  `horizontal_show_userhost=1`
-Display or hide `username@host` in prompt
 
 
 ### Example
@@ -76,7 +83,7 @@ Display or hide `username@host` in prompt
 
 # override default setting
 horizontal_cmd_max_exec_time=10
-horizontal_cozy=1
+horizontal[cozy]=1
 
 autoload -U promptinit && promptinit
 prompt horizontal
