@@ -9,12 +9,12 @@
 
 
 # Set a plaintext of $1 without formatting
-_horizontal_plaintext() {
+function _horizontal_plaintext {
     readonly zero_length='%([BSUbfksu]|([FB]|){*})'
     typeset -g _horizontal_plaintext_result=${(S%%)1//$~zero_length/}
 }
 
-_horizontal_reset_prompt() {
+function _horizontal_reset_prompt {
     # face color
     readonly happy='green'
     readonly sad='yellow'
@@ -43,7 +43,7 @@ _horizontal_reset_prompt() {
 # its length is equal to
 #   - $COLUMNS if length of $1 <= $COLUMNS
 #   - $COLUMNS * 2 if length of $1 > $COLUMNS
-_horizontal_gen_padding() {
+function _horizontal_gen_padding {
     _horizontal_plaintext "${(j::)@}"
     integer prompt_length=$#_horizontal_plaintext_result
     integer n=$((COLUMNS - prompt_length))
@@ -56,7 +56,7 @@ _horizontal_gen_padding() {
     fi
 }
 
-_horizontal_join_status() {
+function _horizontal_join_status {
     local separator=${horizontal_status_separator:-"%F{cyan} | %f"}
     local string
     for item in ${@[1,-1]}; do string+=$separator$item; done
@@ -67,7 +67,7 @@ _horizontal_join_status() {
 # Turn number of seconds into human readable format
 #   78555 => 21h 49m 15s
 #    2781 => 46m 21s
-_horizontal_human_time() {
+function _horizontal_human_time {
     local human=""
     local total_seconds=$1
     local days=$(( total_seconds / 60 / 60 / 24 ))
@@ -81,13 +81,13 @@ _horizontal_human_time() {
     typeset -g _horizontal_human_time_result=$human
 }
 
-_horizontal_exec_seconds() {
+function _horizontal_exec_seconds {
     local stop=$EPOCHSECONDS
     local start=${_horizontal_cmd_timestamp:-$stop}
     typeset -g _horizontal_exec_seconds_result=$((stop-start))
 }
 
-_horizontal_git_dirty() {
+function _horizontal_git_dirty {
     if ((${horizontal[git_untracked_dirty]})); then
         test -z "$(command git status --porcelain --ignore-submodules -unormal)"
     else
@@ -101,7 +101,7 @@ _horizontal_git_dirty() {
     fi
 }
 
-_horizontal_userhost() {
+function _horizontal_userhost {
     if [[ ${horizontal[userhost]} == 1 ]]; then
         typeset -g _horizontal_userhost_result="%b%f%n|${horizontal_hostname:-%m}%f: "
     else
@@ -109,7 +109,7 @@ _horizontal_userhost() {
     fi
 }
 
-prompt_horizontal_preexec() {
+function prompt_horizontal_preexec {
     typeset -g _horizontal_cmd_timestamp=$EPOCHSECONDS
     # shows the executed command in the title when a process is active
     print -n -P -- "\e]0;"
@@ -117,7 +117,7 @@ prompt_horizontal_preexec() {
     print -n -P -- "\a"
 }
 
-prompt_horizontal_precmd() {
+function prompt_horizontal_precmd {
     _horizontal_reset_prompt
     # shows the hostname
     print -Pn -- '\e]0;%M\a'
@@ -206,7 +206,7 @@ prompt_horizontal_precmd() {
     unset _horizontal_cmd_timestamp
 }
 
-prompt_horizontal_setup() {
+function prompt_horizontal_setup {
     typeset -gA horizontal
     # Enable/Disable horizontal features
     : ${horizontal[color]=1}
