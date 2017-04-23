@@ -145,11 +145,6 @@ function prompt_horizontal_precmd {
             [[ -n $git_info ]] && prompt_status+=$git_info
         }
 
-        # pyenv python version
-        ((${horizontal[pyenv]})) && [[ -n $PYENV_VERSION ]] && {
-            prompt_status+="PyEnv $PYENV_VERSION"
-        }
-
         # python virtual environment
         ((${horizontal[virtualenv]})) && [[ -n $VIRTUAL_ENV ]] && {
             prompt_status+="(${VIRTUAL_ENV:t}%)"
@@ -254,6 +249,7 @@ function prompt_horizontal_setup {
 
     # disable auto updating PS1 by virtualenv
     VIRTUAL_ENV_DISABLE_PROMPT=1
+    export PYENV_VIRTUALENV_DISABLE_PROMPT=1
 }
 
 prompt_horizontal_setup "$@"
