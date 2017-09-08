@@ -3,18 +3,19 @@
 
 # Naming convension
 # functions
+#    - avoid function keyword
 #    - snake case
 #    - prefix function name with _horizontal_
 #    - store function result in FUNCNAME_result variable
 
 
 # Set a plaintext of $1 without formatting
-function _horizontal_plaintext {
+_horizontal_plaintext() {
     readonly zero_length='%([BSUbfksu]|([FB]|){*})'
     typeset -g _horizontal_plaintext_result=${(S%%)1//$~zero_length/}
 }
 
-function _horizontal_reset_prompt {
+_horizontal_reset_prompt() {
     # face color
     readonly happy='green'
     readonly sad='yellow'
@@ -22,7 +23,7 @@ function _horizontal_reset_prompt {
     if ((${horizontal[color]})); then
         # prompt face turn green if the previous command did exit with 0,
         # otherwise turn yellow
-        PROMPT="%F{cyan} '--%f%B>%(1j. %F{red}%j!%f.) %(?.%F{$happy}:%).%F{$sad}:()%b%f "
+        PROMPT="%F{${horizontal[base_color]}} '--%f%B>%(1j. %F{red}%j!%f.) %(?.%F{$happy}:%).%F{$sad}:()%b%f "
         # restore prompt highlighting if needed
         if ((${#ZSH_HIGHLIGHT_HIGHLIGHTERS} == 0)); then
             ZSH_HIGHLIGHT_HIGHLIGHTERS=($_horizontal_orig_zsh_highlight_highlighters)
@@ -43,12 +44,12 @@ function _horizontal_reset_prompt {
 # its length is equal to
 #   - $COLUMNS if length of $1 <= $COLUMNS
 #   - $COLUMNS * 2 if length of $1 > $COLUMNS
-function _horizontal_gen_padding {
+_horizontal_gen_padding() {
     _horizontal_plaintext "${(j::)@}"
     integer prompt_length=$#_horizontal_plaintext_result
     integer n=$((COLUMNS - prompt_length))
     ((n < 0)) && n=$((COLUMNS * 2 - prompt_length))
-    local IFS=${horizontal_fill_character:--}
+    local IFS=${horizontal[fill_character]}
     if ((n > 0)); then
         typeset -g _horizontal_gen_padding_result=${(l:$n:::)}
     else
@@ -56,8 +57,8 @@ function _horizontal_gen_padding {
     fi
 }
 
-function _horizontal_join_status {
-    local separator=${horizontal_status_separator:-"%F{cyan} | %f"}
+_horizontal_join_status() {
+    local separator=${horizontal_status_separator:-"%F{${horizontal[base_color]}} | %f"}
     local string
     for item in ${@[1,-1]}; do string+=$separator$item; done
     string=${string:${#separator}} # remove leading separator
@@ -67,7 +68,7 @@ function _horizontal_join_status {
 # Turn number of seconds into human readable format
 #   78555 => 21h 49m 15s
 #    2781 => 46m 21s
-function _horizontal_human_time {
+_horizontal_human_time() {
     local human=""
     local total_seconds=$1
     local days=$(( total_seconds / 60 / 60 / 24 ))
@@ -81,13 +82,13 @@ function _horizontal_human_time {
     typeset -g _horizontal_human_time_result=$human
 }
 
-function _horizontal_exec_seconds {
+_horizontal_exec_seconds() {
     local stop=$EPOCHSECONDS
     local start=${_horizontal_cmd_timestamp:-$stop}
     typeset -g _horizontal_exec_seconds_result=$((stop-start))
 }
 
-function _horizontal_git_dirty {
+_horizontal_git_dirty() {
     if ((${horizontal[git_untracked_dirty]})); then
         test -z "$(command git status --porcelain --ignore-submodules -unormal)"
     else
@@ -101,7 +102,7 @@ function _horizontal_git_dirty {
     fi
 }
 
-function _horizontal_userhost {
+_horizontal_userhost() {
     if [[ ${horizontal[userhost]} == 1 ]]; then
         typeset -g _horizontal_userhost_result="%b%f%n|${horizontal_hostname:-%m}%f: "
     else
@@ -109,7 +110,7 @@ function _horizontal_userhost {
     fi
 }
 
-function prompt_horizontal_preexec {
+prompt_horizontal_preexec() {
     typeset -g _horizontal_cmd_timestamp=$EPOCHSECONDS
     # shows the executed command in the title when a process is active
     print -n -P -- "\e]0;"
@@ -117,7 +118,7 @@ function prompt_horizontal_preexec {
     print -n -P -- "\a"
 }
 
-function prompt_horizontal_precmd {
+prompt_horizontal_precmd() {
     _horizontal_reset_prompt
     # shows the hostname
     print -Pn -- '\e]0;%M\a'
@@ -126,7 +127,7 @@ function prompt_horizontal_precmd {
     local rpreprompt
 
     _horizontal_userhost
-    preprompt="%b%F{cyan}.-%B(${_horizontal_userhost_result}%B%F{yellow}%~%F{cyan})%b%F{cyan}-%f"
+    preprompt="%b%F{${horizontal[base_color]}}.-%B(${_horizontal_userhost_result}%B%F{yellow}%~%F{${horizontal[base_color]}})%b%F{${horizontal[base_color]}}-%f"
 
     ((${horizontal[status]})) && {
 
@@ -153,7 +154,7 @@ function prompt_horizontal_precmd {
         # last command execute time
         ((${horizontal[exec_time]})) && {
             _horizontal_exec_seconds
-            (( $_horizontal_exec_seconds_result > ${horizontal_cmd_max_exec_time:-5} )) && {
+            (( $_horizontal_exec_seconds_result > ${horizontal[cmd_max_exec_time]} )) && {
                 _horizontal_human_time $_horizontal_exec_seconds_result
                 prompt_status+="%F{yellow}$_horizontal_human_time_result%f"
             }
@@ -161,7 +162,7 @@ function prompt_horizontal_precmd {
 
         ((${horizontal[timestamp]})) && {
             _horizontal_exec_seconds
-            (($_horizontal_exec_seconds_result - ${horizontal_timestamp_threshold_seconds:-180} >= 0)) && {
+            (($_horizontal_exec_seconds_result - ${horizontal[timestamp_threshold_seconds]} >= 0)) && {
                 strftime -s timestamp '%D %R' $EPOCHSECONDS
                 rprompt_status+=$timestamp
             }
@@ -176,14 +177,14 @@ function prompt_horizontal_precmd {
         # put rstatus to right of preprompt line
         ((${#rprompt_status} > 0)) && {
             _horizontal_join_status $rprompt_status
-            rpreprompt+=" $_horizontal_join_status_result %F{cyan}-%f"
+            rpreprompt+=" $_horizontal_join_status_result %F{${horizontal[base_color]}}-%f"
         }
     }
 
     # make a horizontal line
     ((${horizontal[hr]})) && {
         _horizontal_gen_padding $preprompt $rpreprompt
-        preprompt+="%F{cyan}${_horizontal_gen_padding_result}%f$rpreprompt"
+        preprompt+="%F{${horizontal[base_color]}}${_horizontal_gen_padding_result}%f$rpreprompt"
     }
 
     # blank line before preprompt line
@@ -201,28 +202,29 @@ function prompt_horizontal_precmd {
     unset _horizontal_cmd_timestamp
 }
 
-function prompt_horizontal_setup {
+prompt_horizontal_setup() {
     typeset -gA horizontal
     # Enable/Disable horizontal features
-    : ${horizontal[color]=1}
-    : ${horizontal[cozy]=0}
-    : ${horizontal[exec_time]=1}
-    : ${horizontal[git]=1}
-    : ${horizontal[git_dirty]=1}
-    : ${horizontal[git_untracked_dirty]=1}
-    : ${horizontal[hr]=1}
-    : ${horizontal[pyenv]=1}
-    : ${horizontal[status]=1}
-    : ${horizontal[timestamp]=1}
-    : ${horizontal[userhost]=1}
-    : ${horizontal[virtualenv]=1}
+    : ${horizontal[base_color]:=cyan}
+    : ${horizontal[color]:=1}
+    : ${horizontal[cozy]:=0}
+    : ${horizontal[exec_time]:=1}
+    : ${horizontal[git]:=1}
+    : ${horizontal[git_dirty]:=1}
+    : ${horizontal[git_untracked_dirty]:=1}
+    : ${horizontal[hr]:=1}
+    : ${horizontal[pyenv]:=1}
+    : ${horizontal[status]:=1}
+    : ${horizontal[timestamp]:=1}
+    : ${horizontal[userhost]:=1}
+    : ${horizontal[virtualenv]:=1}
 
+    : ${horizontal[cmd_max_exec_time]:=5}
+    : ${horizontal[fill_character]:=-}
+    : ${horizontal[timestamp_threshold_seconds]:=180}
     # horizontal_branch_symbol=''
-    # horizontal_cmd_max_exec_time=5
-    # horizontal_fill_character=-
     # horizontal_hostname=
-    # horizontal_status_separator="%F{cyan} | %f"
-    # horizontal_timestamp_threshold_seconds=180
+    # horizontal_status_separator="%F{${horizontal[base_color]}} | %f"
 
     # prevent percentage showing up
     # if output doesn't end with a newline
