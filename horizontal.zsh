@@ -60,7 +60,7 @@ _horizontal_gen_padding() {
 _horizontal_join_status() {
     local separator=${horizontal_status_separator:-"%F{${horizontal[base_color]}} | %f"}
     local string
-    for item in ${@[1,-1]}; do string+=$separator$item; done
+    for item in $@; do string+=$separator$item; done
     string=${string:${#separator}} # remove leading separator
     typeset -g _horizontal_join_status_result=$string
 }
@@ -69,17 +69,17 @@ _horizontal_join_status() {
 #   78555 => 21h 49m 15s
 #    2781 => 46m 21s
 _horizontal_human_time() {
-    local human=""
+    local result=""
     local total_seconds=$1
-    local days=$(( total_seconds / 60 / 60 / 24 ))
-    local hours=$(( total_seconds / 60 / 60 % 24 ))
-    local minutes=$(( total_seconds / 60 % 60 ))
-    local seconds=$(( total_seconds % 60 ))
-    (( days > 0 )) && human+="${days}d "
-    (( hours > 0 )) && human+="${hours}h "
-    (( minutes > 0 )) && human+="${minutes}m "
-    human+="${seconds}s"
-    typeset -g _horizontal_human_time_result=$human
+    local days=$((total_seconds / 60 / 60 / 24))
+    local hours=$((total_seconds / 60 / 60 % 24))
+    local minutes=$((total_seconds / 60 % 60))
+    local seconds=$((total_seconds % 60))
+    ((days > 0)) && result+="${days}d "
+    ((hours > 0)) && result+="${hours}h "
+    ((minutes > 0)) && result+="${minutes}m "
+    result+="${seconds}s"
+    typeset -g _horizontal_human_time_result=$result
 }
 
 _horizontal_exec_seconds() {
@@ -154,7 +154,7 @@ prompt_horizontal_precmd() {
         # last command execute time
         ((${horizontal[exec_time]})) && {
             _horizontal_exec_seconds
-            (( $_horizontal_exec_seconds_result > ${horizontal[cmd_max_exec_time]} )) && {
+            (($_horizontal_exec_seconds_result > ${horizontal[cmd_max_exec_time]})) && {
                 _horizontal_human_time $_horizontal_exec_seconds_result
                 prompt_status+="%F{yellow}$_horizontal_human_time_result%f"
             }
@@ -213,7 +213,6 @@ prompt_horizontal_setup() {
     : ${horizontal[git_dirty]:=1}
     : ${horizontal[git_untracked_dirty]:=1}
     : ${horizontal[hr]:=1}
-    : ${horizontal[pyenv]:=1}
     : ${horizontal[status]:=1}
     : ${horizontal[timestamp]:=1}
     : ${horizontal[userhost]:=1}
