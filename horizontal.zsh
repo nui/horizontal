@@ -18,7 +18,7 @@ _horizontal_plaintext() {
 _horizontal_reset_prompt() {
     # face color
     readonly happy='green'
-    readonly sad='yellow'
+    readonly sad='red'
 
     if ((${horizontal[color]})); then
         # prompt face turn green if the previous command did exit with 0,
@@ -47,7 +47,7 @@ _horizontal_reset_prompt() {
 _horizontal_gen_padding() {
     _horizontal_plaintext "${(j::)@}"
     integer prompt_length=$#_horizontal_plaintext_result
-    integer n=$((COLUMNS - prompt_length))
+    integer n=$((COLUMNS - prompt_length - 1))
     ((n < 0)) && n=$((COLUMNS * 2 - prompt_length))
     local IFS=${horizontal[fill_character]}
     if ((n > 0)); then
@@ -60,6 +60,7 @@ _horizontal_gen_padding() {
 _horizontal_join_status() {
     local separator=${horizontal_status_separator:-"%F{${horizontal[base_color]}} | %f"}
     local string
+    local item
     for item in $@; do string+=$separator$item; done
     string=${string:${#separator}} # remove leading separator
     typeset -g _horizontal_join_status_result=$string
@@ -83,9 +84,15 @@ _horizontal_human_time() {
 }
 
 _horizontal_exec_seconds() {
-    local stop=$EPOCHSECONDS
-    local start=${_horizontal_cmd_timestamp:-$stop}
+    integer stop=$EPOCHSECONDS
+    integer start=${_horizontal_cmd_timestamp:-$stop}
     typeset -g _horizontal_exec_seconds_result=$((stop-start))
+}
+
+_horizontal_idle_seconds() {
+    integer stop=$EPOCHSECONDS
+    integer start=${_horizontal_idle_timestamp:-$stop}
+    typeset -g _horizontal_idle_seconds_result=$((stop-start))
 }
 
 _horizontal_git_dirty() {
@@ -136,6 +143,7 @@ prompt_horizontal_precmd() {
 
         local git_info
         local timestamp
+        integer displayed_exec_time
 
         ((${horizontal[git]})) && vcs_info
 
@@ -153,16 +161,25 @@ prompt_horizontal_precmd() {
 
         # last command execute time
         ((${horizontal[exec_time]})) && {
+            displayed_exec_time=0
             _horizontal_exec_seconds
-            (($_horizontal_exec_seconds_result > ${horizontal[cmd_max_exec_time]})) && {
+            (($_horizontal_exec_seconds_result >= ${horizontal[show_exec_time_threshold]})) && {
+                displayed_exec_time=1
                 _horizontal_human_time $_horizontal_exec_seconds_result
                 prompt_status+="%F{yellow}$_horizontal_human_time_result%f"
+            }
+            ((! $displayed_exec_time)) && {
+                _horizontal_idle_seconds
+                (($_horizontal_idle_seconds_result >= ${horizontal[show_idle_time_threshold]})) && {
+                    _horizontal_human_time $_horizontal_idle_seconds_result
+                    prompt_status+="%F{blue}$_horizontal_human_time_result%f"
+                }
             }
         }
 
         ((${horizontal[timestamp]})) && {
             _horizontal_exec_seconds
-            (($_horizontal_exec_seconds_result - ${horizontal[timestamp_threshold_seconds]} >= 0)) && {
+            (($_horizontal_exec_seconds_result >= ${horizontal[show_timestamp_threshold]})) && {
                 strftime -s timestamp '%D %R' $EPOCHSECONDS
                 rprompt_status+=$timestamp
             }
@@ -200,6 +217,8 @@ prompt_horizontal_precmd() {
 
     # reset value since `preexec` isn't always triggered
     unset _horizontal_cmd_timestamp
+
+    typeset -g _horizontal_idle_timestamp=$EPOCHSECONDS
 }
 
 prompt_horizontal_setup() {
@@ -218,9 +237,10 @@ prompt_horizontal_setup() {
     : ${horizontal[userhost]:=1}
     : ${horizontal[virtualenv]:=1}
 
-    : ${horizontal[cmd_max_exec_time]:=5}
+    : ${horizontal[show_exec_time_threshold]:=5}
+    : ${horizontal[show_idle_time_threshold]:=300}
+    : ${horizontal[show_timestamp_threshold]:=180}
     : ${horizontal[fill_character]:=-}
-    : ${horizontal[timestamp_threshold_seconds]:=180}
     # horizontal_branch_symbol=''
     # horizontal_hostname=
     # horizontal_status_separator="%F{${horizontal[base_color]}} | %f"
