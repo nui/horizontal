@@ -254,6 +254,8 @@ prompt_horizontal_setup() {
     zmodload zsh/datetime
     autoload -Uz add-zsh-hook
     autoload -Uz vcs_info
+    # if vcs_info is not load properly, disable git integration
+    vcs_info 2>/dev/null || horizontal[git]=0
 
     add-zsh-hook precmd prompt_horizontal_precmd
     add-zsh-hook preexec prompt_horizontal_preexec
