@@ -254,8 +254,6 @@ prompt_horizontal_setup() {
     zmodload zsh/datetime
     autoload -Uz add-zsh-hook
     autoload -Uz vcs_info
-    # if vcs_info is not load properly, disable git integration
-    vcs_info 2>/dev/null || horizontal[git]=0
 
     add-zsh-hook precmd prompt_horizontal_precmd
     add-zsh-hook preexec prompt_horizontal_preexec
@@ -269,6 +267,9 @@ prompt_horizontal_setup() {
     # vcs_info_msg_1_ = 'x%R' git top level (%R), x-prefix prevents creation of a named path (AUTO_NAME_DIRS)
     zstyle ':vcs_info:git*' formats "$branch_symbol%b" 'x%R'
     zstyle ':vcs_info:git*' actionformats "$branch_symbol%b|%a" 'x%R'
+
+    # if vcs_info is not load properly, disable git integration
+    vcs_info 2>/dev/null || horizontal[git]=0
 
     # disable auto updating PS1 by virtualenv
     VIRTUAL_ENV_DISABLE_PROMPT=1
